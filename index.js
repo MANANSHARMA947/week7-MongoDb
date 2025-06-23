@@ -16,24 +16,27 @@ app.post("/signup", async function (req, res) {
 
   const requiredBody = z.object({
     email:z.string().min(3).max(100).email(),
-    password:z.string().min(3).max(100),
+
+    password:z.string()
+  .min(8, "Password must be at least 8 characters long")
+  .regex(/[A-Z]/, "Password must include at least one uppercase letter")
+  .regex(/[0-9]/, "Password must include at least one number")
+  .regex(/[!@#$%^&*(),.?":{}|<>]/, "Password must include at least one special character"),
+
     name:z.string().min(3).max(100)
   })
 
 
-
+// difference between pasre and safeparse is that parse will either return u data if everything is right or otherwise terminate the execution and safeparse return you sucess : either true || false and safely pareses it 
   const parsedDataWithSuccess = requiredBody.safeParse(req.body)
   if(!parsedDataWithSuccess.success){
     res.json({
       message:"incorrect format",
-      error:parsedDataWithSuccess.error
+      error:parsedDataWithSuccess.error.format()
     })
     return
   }
-  const email = req.body.email;
-  const password = req.body.password;
-  const name = req.body.name;
-
+  const { email, password, name } = parsedDataWithSuccess.data;
   const hashedPassword = await bcrypt.hash(password, 10); // bcrypt hashes the password for better security
 
   await UserModel.create({
@@ -63,7 +66,7 @@ app.post("/signin", async function (req, res) {
   if (passwordMatch) {
     const token = jwt.sign(
       {
-        id: user._id.toString(),
+        id: response._id.toString(),
       },
       JWT_SECRET
     );
